@@ -4,23 +4,38 @@ const path = require('path');
 
 const Product = require('../models/product');
 const Order = require('../models/order');
+const ITEMS_PER_PAGE = 2;
+
 const { options, setEncoding } = require('pdfkit');
 
 exports.getProducts = (req, res, next) => {
-  Product.find()
-    .then(products => {
-      console.log(products);
+  const page = +req.query.page || 1;
+  let totalItems;
+  Product.find().countDocuments().then(numProducts => {
+    totalItems = numProducts;
+    return Product
+      .find()
+      .skip((page - 1) * ITEMS_PER_PAGE)
+      .limit(ITEMS_PER_PAGE)
+  })
+  .then(products => {
       res.render('shop/product-list', {
         prods: products,
-        docTitle: 'All Products',
-        path: '/products'
+        docTitle: 'Products',
+        path: '/products',
+        currentPage: page,
+        hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+        hasPreviousPage: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE)
       });
-    })
-    .catch(err => {
+  })
+  .catch(err => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
-    });
+  });
 };
 
 exports.getProduct = (req, res, next) => {
@@ -41,19 +56,33 @@ exports.getProduct = (req, res, next) => {
 };
 
 exports.getIndex = (req, res, next) => {
-  Product.find()
-    .then(products => {
+  const page = +req.query.page || 1;
+  let totalItems;
+  Product.find().countDocuments().then(numProducts => {
+    totalItems = numProducts;
+    return Product
+      .find()
+      .skip((page - 1) * ITEMS_PER_PAGE)
+      .limit(ITEMS_PER_PAGE)
+  })
+  .then(products => {
       res.render('shop/index', {
         prods: products,
         docTitle: 'Shop',
-        path: '/'
+        path: '/',
+        currentPage: page,
+        hasNextPage: ITEMS_PER_PAGE * page < totalItems,
+        hasPreviousPage: page > 1,
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalItems / ITEMS_PER_PAGE)
       });
-    })
-    .catch(err => {
+  })
+  .catch(err => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
-    });
+  });
 };
 
 exports.getCart = (req, res, next) => {
